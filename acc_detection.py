@@ -1,9 +1,9 @@
 import math
 import numpy as np
 
-import global_vars
-from global_vars import uorb_msgs, global_time, global_ulog, SensorAccelS
-from ulog_uorb_sim import UORBMsg, UORBMsgPub, UlogData
+import uorb_sim
+from uorb_sim import UORBSub, UORBPub, UlogData
+from uorb_sim import SensorAccel
 from linear_state_model import SoftwareSensor
 
 NORETURN_ERRCOUNT = 10000
@@ -13,16 +13,16 @@ ERROR_FLAG_SUM_UCL_EXCEED = 1
 
 class PX4Accelerometer(object):
     def __init__(self):
-        self._sensor_pub = UORBMsgPub.register("sensor_accel")
-        self._sensor_accel_errors_pub = UORBMsgPub.register("sensor_accel_errors")
+        # self._sensor_pub = UORBPub("sensor_accel")
+        # self._sensor_accel_errors_pub = UORBPub("sensor_accel_errors")
 
         # self._parameter_update_sub = None
-        self._reference_accel_sub = UORBMsgPub.register("reference_accel")
+        self._reference_accel_sub = UORBSub("reference_accel")
 
         self._device_id = 0
         self._rotation = 0
         self._imu_gyro_rate_max = 0
-        self._range = 16 * global_vars.CONSTANTS_ONE_G
+        self._range = 16 * uorb_sim.CONSTANTS_ONE_G
         self._scale = 1
         self._temperature = None
 
@@ -32,22 +32,21 @@ class PX4Accelerometer(object):
 
         self._accel_validator_params = TimeWindowParams()
         self._accel_validator = SquareErrTimeWindowDetector(self._accel_validator_params)
-        self._curr_ref_accel = SensorAccelS()
-        self._next_ref_accel = SensorAccelS()
+        self._curr_ref_accel = SensorAccel()
+        self._next_ref_accel = SensorAccel()
 
-        self.param_iv_acc_noise = global_vars.global_ulog.get_init_param()["EKF2_ACC_NOISE"]
+        self.param_iv_acc_noise = uorb_sim.global_ulog.get_init_param()["EKF2_ACC_NOISE"]
 
         pass
 
     def update(self, timestamp_sample, x, y, z):
         # rotate_3f(_rotation, x, y, z);
 
-        report = SensorAccelS()
+        report = SensorAccel()
         report.timestamp_sample = timestamp_sample
         report.x = x
         report.y = y
         report.z = z
-        report.samples = 1
 
         self.update_reference(timestamp_sample)
         self.validate_accel(report)
@@ -57,19 +56,15 @@ class PX4Accelerometer(object):
     def update_reference(self, timestamp_sample):
         while self._next_ref_accel.timestamp_sample <= timestamp_sample:
             self._curr_ref_accel = self._next_ref_accel
-            if not self._reference_accel_sub.is_updated:
+            if not self._reference_accel_sub.updated:
                 break
             else:
-                self._next_ref_accel = SensorAccelS
-                self._next_ref_accel.x = self._reference_accel_sub.val["x"]
-                self._next_ref_accel.y = self._reference_accel_sub.val["y"]
-                self._next_ref_accel.z = self._reference_accel_sub.val["z"]
-                self._next_ref_accel.timestamp = self._reference_accel_sub.val["timestamp"]
-                self._next_ref_accel.timestamp_sample = self._reference_accel_sub.val["timestamp_sample"]
-                self._next_ref_accel.samples = self._reference_accel_sub.val["samples"]
-                # self._next_ref_accel. = self._reference_accel_sub.val[]
+                self._next_ref_accel = SensorAccel()
+                self._next_ref_accel.x          = self._reference_accel_sub.val.x
+                self._next_ref_accel.y          = self._reference_accel_sub.val.y
+                self._next_ref_accel.z          = self._reference_accel_sub.val.z
+                self._next_ref_accel.timestamp  = self._reference_accel_sub.val.timestamp
 
-                self._reference_accel_sub.is_updated = False
         pass
 
     def validate_accel(self, accel):
@@ -87,7 +82,7 @@ class PX4Accelerometer(object):
 
         if self._accel_validator.test_ratio() >= 1:
             accel.error_count = max(accel.error_count + NORETURN_ERRCOUNT, NORETURN_ERRCOUNT + 1)
-            raise Exception(f"detected, now time: {global_time.time}")
+            raise Exception(f"detected, now time: {uorb_sim.global_time.time}")
 
 
 class TimeWindowParams(object):
@@ -188,17 +183,30 @@ class SquareErrTimeWindowDetector(object):
 
 
 def main():
-    ulg_path = r"O:\DataSet_UAV_AdSketch\202402_Gazebo_PX4\Abnormal_Iris_Turn\01_40_32.ulg"
-    global_vars.global_ulog = UlogData(ulg_path)
-    global_vars.global_time.init_time(global_vars.global_ulog.ulg_data.start_timestamp + 1e6)
+    ulg_path = r"O:\DataSet_UAV_AdSketch\202402_Gazebo_PX4\Abnormal_Iris_Turn\11_34_34.ulg"
+    uorb_sim.global_ulog = UlogData(ulg_path, uorb_sim.TOPICS_UPDATE_FROM_ULOG)
+    print(uorb_sim.global_ulog.ulg_data.start_timestamp)
+    uorb_sim.global_time.init_time(uorb_sim.global_ulog.ulg_data.start_timestamp + 1e6)
     ss = SoftwareSensor()
     px = PX4Accelerometer()
-    sensor_accel_sub: UORBMsg = UORBMsg("sensor_accel")
+    sensor_accel_sub: UORBSub = UORBSub("sensor_accel")
+    time_count = 0
+    print(uorb_sim.global_ulog.attack_start)
     while True:
-        global_time.update()
+        uorb_sim.global_time.update()
         ss.run()
         tv = sensor_accel_sub.val
-        px.update(tv["timestamp_sample"], tv["x"], tv["y"], tv["z"])
+        px.update(tv.timestamp_sample, tv.x, tv.y, tv.z)
+
+        time_count += 1
+        if time_count == 1000:
+            print(uorb_sim.global_time.time)
+            time_count = 0
+        if uorb_sim.global_time.time == uorb_sim.global_ulog.attack_start:
+            print("here")
+        if uorb_sim.global_time.time > uorb_sim.global_ulog.ulg_data.last_timestamp:
+            print("over")
+            break
 
 
 main()

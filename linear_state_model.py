@@ -2,63 +2,62 @@ import math
 
 import numpy as np
 
-import global_vars
-from ulog_uorb_sim import UORBMsg, UORBMsgPub
-from global_vars import global_time, global_ulog
+import uorb_sim
+from uorb_sim import UORBSub, UORBPub
 
 lsm_params = {
     "pos_a" : np.array([
-        [0.919489347204180, 0.0119464282604650, -0.192819941473865],
-        [0.0528842239238510, 0.801093546380488, -0.0477911531019410],
-        [0.162062006998199, 0.0650180881866930, 0.935833140249484]], dtype=float),
+        [0.919489347204180,     0.0119464282604650, -0.192819941473865],
+        [0.0528842239238510,    0.801093546380488,  -0.0477911531019410],
+        [0.162062006998199,     0.0650180881866930, 0.935833140249484]], dtype=np.float64),
     "pos_b" : np.array([
-        [-0.0691758229071862, 0.00595074207237158, -0.191188917325680],
-        [0.0462025384767783, -0.0272814074007897, 0.0585566178880740],
-        [0.129912405403274, -0.0196449464552788, 0.0802167504129897]], dtype=float),
+        [-0.0691758229071862,   0.00595074207237158, -0.191188917325680],
+        [0.0462025384767783,    -0.0272814074007897, 0.0585566178880740],
+        [0.129912405403274,     -0.0196449464552788, 0.0802167504129897]], dtype=np.float64),
     "pos_c" : np.array([
-        [-1.29290475615475, -2.28817203216728, 0.892586174268364],
-        [-0.213618208134952, -9.86203077194641, -3.23728070561305],
-        [-0.00743160727436257, 0.483715174473085, -1.38159159167620]], dtype=float),
-    "pos_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=float),
+        [-1.29290475615475,     -2.28817203216728, 0.892586174268364],
+        [-0.213618208134952,    -9.86203077194641, -3.23728070561305],
+        [-0.00743160727436257,  0.483715174473085, -1.38159159167620]], dtype=np.float64),
+    "pos_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float64),
     "vel_a" : np.array([
-        [0.945939218994339, 0.0155415345598237, -0.00562246614333835],
-        [-0.00910969859791014, 0.947979166036600, -0.00191799511674801],
-        [-0.00338321047831186, -0.00347933085516419, 0.982333231305596]], dtype=float),
+        [0.945939218994339,     0.0155415345598237,     -0.00562246614333835],
+        [-0.00910969859791014,  0.947979166036600,      -0.00191799511674801],
+        [-0.00338321047831186,  -0.00347933085516419,   0.982333231305596]], dtype=np.float64),
     "vel_b" : np.array([
         [-0.0123846422546555, -0.0183372869321554, 0.000120731875197880],
         [0.0195965838189640, -0.00924440720628244, 0.00158306512253179],
-        [0.00119068997988281, -0.00202572095889213, 0.00384783178072417]], dtype=float),
+        [0.00119068997988281, -0.00202572095889213, 0.00384783178072417]], dtype=np.float64),
     "vel_c" : np.array([
         [-0.712991067636498, 2.32895129565492, -0.303147868794428],
         [-2.43902066914752, -0.685470334851028, -0.215106185430006],
-        [-0.214685774172540, -0.228576242355074, 4.64908878232118]], dtype=float),
-    "vel_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=float),
+        [-0.214685774172540, -0.228576242355074, 4.64908878232118]], dtype=np.float64),
+    "vel_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float64),
     "att_a" : np.array([
         [0.981221780404930, -0.00109427049235634, -0.00359494665471823],
         [0.0374914672638471, 0.901624486168204, 0.0419470825095875],
-        [0.0462160873113424, -0.0550882530642634, 0.995312131116061]], dtype=float),
+        [0.0462160873113424, -0.0550882530642634, 0.995312131116061]], dtype=np.float64),
     "att_b" : np.array([
         [-0.00789605958410498, 0.0462592907244172, -0.00537797895856994],
         [0.184654373552757, -0.0880537453639859, -0.112482194583249],
-        [0.0845364452056223, -0.00231948994077510, -0.101893826667246]], dtype=float),
+        [0.0845364452056223, -0.00231948994077510, -0.101893826667246]], dtype=np.float64),
     "att_c" : np.array([
         [0.766937499921799, 0.504910440421393, -0.604406160954656],
         [0.700953088781031, 0.117394890765249, -0.115045355102882],
-        [1.23973456366793, -0.0544777012060007, -0.627309718687385]], dtype=float),
-    "att_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=float),
+        [1.23973456366793, -0.0544777012060007, -0.627309718687385]], dtype=np.float64),
+    "att_d" : np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float64),
     "rate_a": np.array([
         [0.903264997045629, -0.00859950576982774, 8.93798307789612e-05],
         [0.00278084740044130, 0.898471214184887, 0.0219147976111119],
-        [0.0390515436868904, -0.0217427961835949, 0.986958524976853]], dtype=float),
+        [0.0390515436868904, -0.0217427961835949, 0.986958524976853]], dtype=np.float64),
     "rate_b": np.array([
         [0.00992870424044070, 0.0148192549278530, 0.00367474607563924],
         [-0.0158703636893475, 0.0152222254319134, -0.00510224932791170],
-        [-0.00969964949930196, -0.00251903289028068, -0.00199267555580131]], dtype=float),
+        [-0.00969964949930196, -0.00251903289028068, -0.00199267555580131]], dtype=np.float64),
     "rate_c": np.array([
         [1.50603568650678, -2.05925323061411, -4.63734618012334],
         [3.96969160288635, 3.20061888163443, -0.988989417654861],
-        [7.09092718437484, -4.47847818405435, 15.0007092988635]], dtype=float),
-    "rate_d": np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=float)
+        [7.09092718437484, -4.47847818405435, 15.0007092988635]], dtype=np.float64),
+    "rate_d": np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float64)
 }
 
 
@@ -130,10 +129,10 @@ class CopterStatus(object):
 
 class VehicleState(object):
     def __init__(self):
-        self.pos = np.array([0, 0, 0], dtype=float)
-        self.vel = np.array([0, 0, 0], dtype=float)
-        self.att = np.array([0, 0, 0], dtype=float)
-        self.rates = np.array([0, 0, 0], dtype=float)
+        self.pos = np.array([0, 0, 0], dtype=np.float64)
+        self.vel = np.array([0, 0, 0], dtype=np.float64)
+        self.att = np.array([0, 0, 0], dtype=np.float64)
+        self.rates = np.array([0, 0, 0], dtype=np.float64)
 
 
 class SoftwareSensor(object):
@@ -178,8 +177,8 @@ class SoftwareSensor(object):
 
         # estimator_states_s      _reference_states{};
 
-        self._reference_accel_pub: UORBMsgPub = UORBMsgPub.register('reference_accel')
-        self._reference_gyro_pub: UORBMsgPub = UORBMsgPub.register('reference_gyro')
+        self._reference_accel_pub: UORBPub = UORBPub('reference_accel')
+        self._reference_gyro_pub : UORBPub = UORBPub('reference_gyro')
         # uORB::PublicationMulti<vehicle_angular_acceleration_s>   _reference_angular_acceleration_pub{ORB_ID(
         # reference_angular_acceleration)}; uORB::PublicationMulti<vehicle_angular_velocity_s>
         # _reference_angular_velocity_pub{ORB_ID(reference_angular_velocity)};
@@ -188,19 +187,20 @@ class SoftwareSensor(object):
         # reference_imu)}; uORB::PublicationMulti<estimator_states_s>               _reference_state_pub{ORB_ID(
         # vehicle_reference_states)};
 
-        self._actuator_outputs_sub: UORBMsg = UORBMsg("actuator_outputs")
         # self._parameter_update_sub: UORBMsg = None
 
         # self._estimator_states_sub         : UORBMsg = UORBMsg.register()
-        self._local_pos_sub: UORBMsg = UORBMsg("vehicle_local_position")
-        self._local_pos_sp_sub: UORBMsg = UORBMsg("vehicle_local_position_setpoint")
-        self._vehicle_attitude_sub: UORBMsg = UORBMsg("vehicle_attitude")
-        self._vehicle_attitude_setpoint_sub: UORBMsg = UORBMsg("vehicle_attitude_setpoint")
-        self._vehicle_angular_velocity_sub: UORBMsg = UORBMsg("vehicle_angular_velocity")
-        self._vehicle_rates_setpoint_sub: UORBMsg = UORBMsg("vehicle_rates_setpoint")
-        self._vehicle_land_detected_sub: UORBMsg = UORBMsg("vehicle_land_detected")
 
-        self._param_ekf2_predict_us = global_vars.global_ulog.get_init_param()["EKF2_PREDICT_US"]
+        self._actuator_outputs_sub          : UORBSub = UORBSub("actuator_outputs")
+        self._local_pos_sub                 : UORBSub = UORBSub("vehicle_local_position")
+        self._local_pos_sp_sub              : UORBSub = UORBSub("vehicle_local_position_setpoint")
+        self._vehicle_attitude_sub          : UORBSub = UORBSub("vehicle_attitude")
+        self._vehicle_attitude_setpoint_sub : UORBSub = UORBSub("vehicle_attitude_setpoint")
+        self._vehicle_angular_velocity_sub  : UORBSub = UORBSub("vehicle_angular_velocity")
+        self._vehicle_rates_setpoint_sub    : UORBSub = UORBSub("vehicle_rates_setpoint")
+        self._vehicle_land_detected_sub     : UORBSub = UORBSub("vehicle_land_detected")
+
+        self._param_ekf2_predict_us = uorb_sim.global_ulog.get_init_param()["EKF2_PREDICT_US"]
 
         pass
 
@@ -217,15 +217,15 @@ class SoftwareSensor(object):
 
         # self.publish_reference_imu()
 
-        if not self._actuator_outputs_sub.is_updated:
+        if not self._actuator_outputs_sub.updated:
             return
 
         act = self._actuator_outputs_sub.val
-        if not self._last_update_us >= act["timestamp"] - self._rate_ctrl_interval_us and \
-                self._last_update_us <= act["timestamp"] + self._rate_ctrl_interval_us:
-            self._last_update_us = act["timestamp"]
+        if not self._last_update_us >= act.timestamp - self._rate_ctrl_interval_us and \
+                self._last_update_us <= act.timestamp + self._rate_ctrl_interval_us:
+            self._last_update_us = act.timestamp
 
-        update_start = global_vars.global_time.time
+        update_start = uorb_sim.global_time.time
         target_time_us = max(update_start - self._rate_ctrl_interval_us, act.timestamp)
         while self._last_update_us <= target_time_us:
             self.update_copter_status()
@@ -249,11 +249,11 @@ class SoftwareSensor(object):
         pass
 
     def update_pos_vel_state(self):
-        if self._local_pos_sub.is_updated:
-            if self._local_pos_sp_sub.is_updated:
+        if self._local_pos_sub.updated:
+            if self._local_pos_sp_sub.updated:
                 lpos_sp = self._local_pos_sp_sub.val
-                pos_sp = np.array([lpos_sp['x'], lpos_sp['y'], lpos_sp['z']])
-                vel_sp = np.array([lpos_sp.vx['x'], lpos_sp['vy'], lpos_sp['vz']])
+                pos_sp = np.array([lpos_sp.x, lpos_sp.y, lpos_sp.z])
+                vel_sp = np.array([lpos_sp.vx, lpos_sp.vy, lpos_sp.vz])
 
                 self._pos_model.set_target_state(pos_sp)
                 self._vel_model.set_target_state(vel_sp)
@@ -269,13 +269,13 @@ class SoftwareSensor(object):
             R_earth_to_body = self.euler_to_dcm(self._state.att)
             self._avg_acceleration = self._delta_vel / self._filter_update_period
             # 减去重力加速度在机体坐标系下的分量
-            CONSTANTS_ONE_G = global_vars.CONSTANTS_ONE_G
+            CONSTANTS_ONE_G = uorb_sim.CONSTANTS_ONE_G
             self._avg_acceleration -= np.dot(R_earth_to_body.T, np.array([0.0, 0.0, CONSTANTS_ONE_G]))
 
     def update_attitude(self):
-        if self._vehicle_attitude_setpoint_sub.is_updated:
+        if self._vehicle_attitude_setpoint_sub.updated:
             att_sp = self._vehicle_attitude_setpoint_sub.val
-            target = np.array([att_sp['roll_body'], att_sp['pitch_body'], att_sp['yaw_body']], dtype=float)
+            target = np.array([att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body], dtype=np.float64)
             self._att_model.set_target_state(target)
 
         self._att_model.update()
@@ -286,7 +286,7 @@ class SoftwareSensor(object):
     # def update_angular_velocity_and_acceleration(self):
     #     if self._vehicle_rates_setpoint_sub.is_updated:
     #         rate_sp = self._vehicle_rates_setpoint_sub.val
-    #         target = np.array([rate_sp['roll'], rate_sp['pitch'], rate_sp['yaw']], dtype=float)
+    #         target = np.array([rate_sp['roll'], rate_sp['pitch'], rate_sp['yaw']], dtype=np.float64)
     #         self._rate_model.set_target_state(target)
     #
     #     prev_rates = self._rate_model.output_state
@@ -317,17 +317,21 @@ class SoftwareSensor(object):
     def publish_reference_state(self):
         pass
 
-    def publish_reference_accelerometer(self):
-        self._reference_accel_pub.val["timestamp_sample"] = self._last_update_us
-        self._reference_accel_pub.val["timestamp"] = global_vars.global_time.time
-        self._reference_accel_pub.val['x'] = self._avg_acceletation[0]
-        self._reference_accel_pub.val['y'] = self._avg_acceletation[1]
-        self._reference_accel_pub.val['z'] = self._avg_acceletation[2]
-        self._reference_accel_pub.val["samples"] = 1
-        self._reference_accel_pub.is_updated = True
+    def publish_reference_gyro_and_accelerometer(self):
+        temp_val = {"timestamp_sample"  : self._last_update_us,
+                    "timestamp"         : uorb_sim.global_time.time,
+                    'x'                 : self._avg_acceletation[0],
+                    'y'                 : self._avg_acceletation[1],
+                    'z'                 : self._avg_acceletation[2]}
+        self._reference_accel_pub.val_update(temp_val)
 
-    def publish_reference_gyro(self):
-        pass
+        temp_val = {"timestamp_sample": self._last_update_us,
+                    "timestamp"       : uorb_sim.global_time.time,
+                    'x'               : self._state.rates[0],
+                    'y'               : self._state.rates[1],
+                    'z'               : self._state.rates[2]}
+        self._reference_gyro_pub.val_update(temp_val)
+
 
     # 自定义函数,将角度值约束在-π到π的范围内
     @staticmethod
